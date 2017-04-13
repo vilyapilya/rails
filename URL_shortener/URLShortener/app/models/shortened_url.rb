@@ -31,16 +31,49 @@ class ShortenedUrl < ApplicationRecord
   )
 
   has_many(
-    :visitors,
+    :visits,
     class_name: "Visit",
     foreign_key: :url_id,
     primary_key: :id
+  )
+
+  has_many(
+    :visitors,
+    -> { distinct },
+    through: :visits,
+    source: :user
   )
 
   def self.create!(user, long_url)
     code = random_code
     url = ShortenedUrl.new(submitter_id: user.id, long_url: long_url, short_url: code)
     url.save!
+    url
   end
+
+  def num_clicks
+    visits.count
+  end
+
+  def num_uniques
+    visitors.count
+  end
+
+  def num_recent_uniques
+    visits.select(:user_id).where(["created_at > ?", 10.minutes.ago]).distinct.count
+  end
+
+  has_many(
+    :taggings,
+    class_name: "Tagging",
+    foreign_key: :url_id,
+    primary_key: :id
+  )
+
+  has_many(
+    :tag_topics,
+    through: :taggings,
+    source: :topic
+  )
 
 end
